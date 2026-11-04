@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0605">
+<title>Книга Пламени</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Marck+Script&family=Ruslan+Display&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#d9a441;
+    --gold-light:#ffd98a;
+    --ember:#ff6a1f;
+    --ink:#2a1608;
+    --parch1:#e9d5a5;
+    --parch2:#d2b47a;
+    --parch3:#a98350;
+    --leather1:#3a1a0d;
+    --leather2:#1d0c06;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;overflow:hidden;background:#0a0504;color:var(--ink);font-family:'EB Garamond',Georgia,serif;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+
+  /* ===== ФОН: каменный пол / старый стол ===== */
+  .floor{
+    position:fixed;inset:0;z-index:0;
+    background:
+      radial-gradient(ellipse at 50% 55%, rgba(255,110,30,.22) 0%, rgba(120,40,10,.12) 35%, transparent 70%),
+      radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,.85) 100%),
+      repeating-linear-gradient(90deg, rgba(0,0,0,.35) 0 2px, transparent 2px 86px),
+      repeating-linear-gradient(0deg, rgba(0,0,0,.4) 0 2px, transparent 2px 64px),
+      linear-gradient(135deg,#1b1210,#100a08 50%,#1a110e);
+  }
+  .floor::after{
+    content:"";position:absolute;inset:0;opacity:.35;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .4  0 0 0 0 .3  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  #embers{position:fixed;inset:0;z-index:1;pointer-events:none}
+
+  /* ===== СЦЕНА ===== */
+  .stage{
+    position:fixed;inset:0;z-index:2;
+    display:flex;align-items:center;justify-content:center;
+    perspective:1800px;perspective-origin:50% 40%;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .book{
+    position:relative;
+    width:min(88vw,430px);
+    height:min(76dvh,700px);
+    transform-style:preserve-3d;
+    transform:rotateX(6deg);
+    transition:transform .8s ease;
+    filter:drop-shadow(0 30px 40px rgba(0,0,0,.8));
+  }
+  .book.closed-left{transform:rotateX(6deg) translateX(0)}
+
+  /* толщина книги: нижние страницы и переплёт */
+  .block{
+    position:absolute;inset:0;border-radius:4px 10px 10px 4px;
+    background:
+      repeating-linear-gradient(180deg,#d8c08c 0 2px,#a88a58 2px 3px);
+    transform:translate3d(5px,6px,-4px);
+  }
+  .block::before{
+    content:"";position:absolute;inset:0;border-radius:inherit;
+    background:linear-gradient(90deg,rgba(0,0,0,.5),transparent 10%,transparent 90%,rgba(0,0,0,.35));
+  }
+  .spine{
+    position:absolute;left:-9px;top:-3px;bottom:-3px;width:14px;border-radius:6px 0 0 6px;
+    background:linear-gradient(90deg,#120603,#3d1c0e 50%,#24100a);
+    box-shadow:inset 0 0 8px #000, 0 0 0 1px #000;
+    transform:translateZ(-2px);
+  }
+  .spine::before,.spine::after{
+    content:"";position:absolute;left:2px;right:2px;height:3px;background:var(--gold);opacity:.7;border-radius:2px;
+  }
+  .spine::before{top:14%} .spine::after{bottom:14%}
+
+  /* ===== ЛИСТЫ ===== */
+  .leaf{
+    position:absolute;inset:0;
+    transform-origin:left center;
+    transform-style:preserve-3d;
+    transition:transform 1.05s cubic-bezier(.55,.05,.25,1), opacity .01s linear;
+    will-change:transform;
+  }
+  .leaf.flipped{
+    transform:rotateY(-168deg);
+    opacity:0;pointer-events:none;
+    transition:transform 1.05s cubic-bezier(.55,.05,.25,1), opacity .01s linear .9s;
+  }
+  .face{
+    position:absolute;inset:0;border-radius:3px 10px 10px 3px;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    overflow:hidden;
+  }
+  .face.back{
+    transform:rotateY(180deg);
+    background:
+      linear-gradient(270deg,rgba(0,0,0,.35),transparent 30%),
+      radial-gradient(ellipse at 60% 40%,var(--parch1),var(--parch2) 70%,var(--parch3));
+  }
+  .face.back.leather{
+    background:
+      radial-gradient(ellipse at 50% 40%,#4a2412,var(--leather2) 80%);
+  }
+  /* тень при перелистывании */
+  .leaf .shade{
+    position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+    background:linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,0) 60%);
+    opacity:0;transition:opacity .5s ease;
+  }
+  .leaf.flipped .shade{opacity:1}
+
+  /* ===== ПЕРГАМЕНТ ===== */
+  .page{
+    background:
+      radial-gradient(ellipse at 50% 45%, rgba(255,246,214,.9) 0%, rgba(233,213,165,.0) 65%),
+      radial-gradient(ellipse at 15% 10%, rgba(120,70,20,.35), transparent 40%),
+      radial-gradient(ellipse at 90% 95%, rgba(90,45,10,.45), transparent 45%),
+      radial-gradient(ellipse at 5% 90%, rgba(80,40,10,.3), transparent 35%),
+      linear-gradient(135deg,var(--parch1),var(--parch2) 60%,var(--parch3));
+    padding:26px 26px 38px 34px;
+    display:flex;flex-direction:column;
+  }
+  .page::before{ /* фактура и пятна */
+    content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:.55;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='.035 .05' numOctaves='4' seed='7'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .3  0 0 0 0 .12  0 0 0 1.3 -.35'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>");
+  }
+  .page::after{ /* потёртые обгоревшие края и корешок */
+    content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+    box-shadow:inset 0 0 38px 8px rgba(70,30,5,.65), inset 14px 0 18px -6px rgba(0,0,0,.45);
+  }
+  .inner{
+    position:relative;z-index:1;flex:1;overflow-y:auto;overflow-x:hidden;
+    padding:2px 4px 6px 2px;scrollbar-width:none;
+  }
+  .inner::-webkit-scrollbar{display:none}
+  .frame{
+    position:absolute;inset:12px 12px 14px 20px;z-index:1;pointer-events:none;
+    border:1.5px solid rgba(150,100,30,.7);border-radius:3px;
+    box-shadow:0 0 0 3px rgba(233,213,165,.25), 0 0 0 4px rgba(150,100,30,.35);
+  }
+  .frame::before,.frame::after{
+    content:"❖";position:absolute;color:rgba(130,80,20,.8);font-size:12px;line-height:1;
+  }
+  .frame::before{top:-7px;left:-6px;background:transparent}
+  .frame::after{bottom:-7px;right:-6px}
+
+  h2{
+    font-family:'Ruslan Display',serif;font-weight:400;
+    font-size:clamp(24px,7.2vw,32px);text-align:center;margin:6px 0 4px;
+    color:#5a1e06;letter-spacing:.5px;line-height:1.1;
+  }
+  .sub{
+    text-align:center;font-style:italic;color:#6b4318;font-size:15px;margin:0 0 10px;
+  }
+  .rune-line{
+    text-align:center;color:#8a4a12;letter-spacing:7px;font-size:15px;margin:2px 0 12px;opacity:.85;
+  }
+  p{font-size:clamp(17px,4.6vw,20px);line-height:1.42;margin:0 0 12px;color:#2a1608}
+  p.lead{text-align:center;font-size:clamp(19px,5.4vw,23px)}
+  b.dice{color:#7a1f05;font-weight:600}
+  .big{
+    display:block;text-align:center;font-family:'Ruslan Display',serif;
+    font-size:clamp(46px,16vw,72px);color:#7a1f05;line-height:1;margin:6px 0 2px;
+  }
+  .box{
+    border:1px solid rgba(120,70,20,.55);border-radius:6px;padding:10px 12px;margin:0 0 12px;
+    background:rgba(255,235,180,.28);
+  }
+  .box strong{color:#5a1e06}
+  .spell{margin:0 0 14px}
+  .spell h3{
+    font-family:'Ruslan Display',serif;font-weight:400;
+    font-size:clamp(21px,6vw,26px);margin:0 0 2px;color:#6a1c05;
+  }
+  .spell .tag{font-style:italic;font-size:14px;color:#7b5320;margin:0 0 5px;display:block}
+  .spell p{margin:0}
+  .cost{
+    display:inline-block;border:1px solid #8a4a12;border-radius:20px;padding:0 9px;font-size:13px;color:#7a3a0a;
+    margin-left:6px;vertical-align:middle;font-family:'EB Garamond',serif;
+  }
+  .foot{
+    position:absolute;bottom:16px;left:0;right:0;text-align:center;z-index:2;
+    font-family:'Ruslan Display',serif;font-size:13px;color:#7b5320;opacity:.9;
+  }
+
+  /* ===== СВЕЧЕНИЕ ТЕКСТА ПРИ ПОЯВЛЕНИИ ===== */
+  .glow-in{opacity:0}
+  .leaf.active .glow-in{
+    animation:glowIn 1.6s ease forwards;
+    animation-delay:calc(.55s + var(--i,0)*.14s);
+  }
+  @keyframes glowIn{
+    0%{opacity:0;filter:blur(3px);text-shadow:0 0 0 rgba(255,140,40,0)}
+    35%{opacity:1;filter:blur(0);text-shadow:0 0 14px rgba(255,120,30,.95),0 0 28px rgba(255,90,10,.7)}
+    100%{opacity:1;filter:blur(0);text-shadow:0 0 5px rgba(255,140,50,.35)}
+  }
+  /* постоянное мерцание заголовков и рун */
+  .flicker{animation:flick 3.4s ease-in-out infinite}
+  @keyframes flick{
+    0%,100%{text-shadow:0 0 6px rgba(255,120,30,.55),0 0 14px rgba(255,80,10,.3)}
+    45%{text-shadow:0 0 10px rgba(255,150,40,.85),0 0 24px rgba(255,90,10,.5)}
+    60%{text-shadow:0 0 4px rgba(255,120,30,.4),0 0 10px rgba(255,80,10,.25)}
+  }
+  .leaf.active h2.glow-in{animation:glowIn 1.6s ease forwards, flick 3.4s ease-in-out 2.4s infinite}
+
+  /* ===== ОБЛОЖКА ===== */
+  .cover{
+    border-radius:3px 12px 12px 3px;
+    background:
+      radial-gradient(ellipse at 50% 35%, rgba(255,120,40,.12), transparent 60%),
+      radial-gradient(ellipse at 20% 15%, rgba(255,255,255,.08), transparent 35%),
+      linear-gradient(135deg,#4a2412,var(--leather1) 45%,var(--leather2));
+    display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+    padding:34px 22px 30px 30px;text-align:center;color:var(--gold);
+  }
+  .cover::before{ /* кожа */
+    content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;opacity:.7;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='l'><feTurbulence type='turbulence' baseFrequency='.09' numOctaves='3' seed='3'/><feColorMatrix values='0 0 0 0 .2  0 0 0 0 .1  0 0 0 0 .05  0 0 0 1.6 -.5'/></filter><rect width='100%' height='100%' filter='url(%23l)'/></svg>");
+  }
+  .cover::after{
+    content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+    box-shadow:inset 0 0 40px 6px rgba(0,0,0,.8), inset 12px 0 16px -6px rgba(0,0,0,.7);
+  }
+  .cover .gframe{
+    position:absolute;inset:14px 14px 14px 22px;border:2px solid var(--gold);border-radius:6px;opacity:.8;pointer-events:none;
+    box-shadow:0 0 12px rgba(217,164,65,.4), inset 0 0 0 5px transparent, inset 0 0 0 6px rgba(217,164,65,.4);
+  }
+  .cover > *{position:relative;z-index:2}
+  .cover h1{
+    font-family:'Ruslan Display',serif;font-weight:400;margin:6px 0 0;
+    font-size:clamp(34px,11vw,52px);letter-spacing:2px;line-height:1.05;
+    background:linear-gradient(180deg,var(--gold-light),var(--gold) 55%,#8a5a14);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 10px rgba(255,120,30,.55));
+    animation:titleGlow 3.6s ease-in-out infinite;
+  }
+  @keyframes titleGlow{
+    0%,100%{filter:drop-shadow(0 0 8px rgba(255,110,30,.5))}
+    50%{filter:drop-shadow(0 0 18px rgba(255,140,40,.9))}
+  }
+  .cover .owner{font-style:italic;font-size:clamp(15px,4.2vw,19px);color:#e0b562;margin:8px 0 0;letter-spacing:.5px}
+  .flame-wrap{width:58%;max-width:210px;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center}
+  .flame-wrap svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 14px rgba(255,110,20,.85))}
+  .flame-outer{transform-origin:50% 100%;animation:fl1 2.2s ease-in-out infinite}
+  .flame-mid{transform-origin:50% 100%;animation:fl2 1.7s ease-in-out infinite}
+  .flame-in{transform-origin:50% 100%;animation:fl3 1.3s ease-in-out infinite}
+  @keyframes fl1{0%,100%{transform:scale(1,1) skewX(0)}50%{transform:scale(.96,1.06) skewX(2deg)}}
+  @keyframes fl2{0%,100%{transform:scale(1,1) skewX(0)}50%{transform:scale(1.04,.95) skewX(-3deg)}}
+  @keyframes fl3{0%,100%{transform:scale(1,1)}50%{transform:scale(.9,1.1)}}
+  .runes{letter-spacing:9px;font-size:18px;color:var(--gold);opacity:.85;animation:flick 3s ease-in-out infinite}
+  .hint{font-size:13px;color:#b98b43;opacity:.8;margin-top:6px;animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.4}50%{opacity:.95}}
+
+  /* ===== ЗАПИСКА ===== */
+  .note-wrap{position:relative;margin:4px 0 0;transform:rotate(-1.4deg)}
+  .note{
+    position:relative;padding:18px 16px 16px;
+    background:
+      radial-gradient(ellipse at 50% 50%, #efe3c6, #d9c79d 85%),
+      #e0cfa4;
+    box-shadow:0 6px 14px rgba(40,15,0,.5), inset 0 0 22px rgba(120,80,30,.45);
+    clip-path:polygon(0 2%,6% 0,14% 1.5%,25% 0,38% 1%,52% 0,66% 1.5%,80% 0,92% 1%,100% 0,99% 12%,100% 28%,98.5% 45%,100% 62%,99% 80%,100% 100%,88% 99%,72% 100%,58% 98.6%,42% 100%,27% 99%,12% 100%,0 98.5%,1.2% 82%,0 64%,1.5% 46%,0 30%,1% 14%);
+  }
+  .note p{
+    font-family:'Marck Script','Segoe Script',cursive;
+    font-size:clamp(18px,5vw,22px);line-height:1.38;color:#1f1409;margin:0 0 8px;
+  }
+  .note .sign{text-align:right;font-size:clamp(24px,7vw,30px);margin:6px 8px 0 0}
+  .pin{
+    position:absolute;top:-8px;left:50%;width:16px;height:16px;border-radius:50%;z-index:3;
+    background:radial-gradient(circle at 35% 30%,#ff9a7a,#a01800 60%,#4a0a00);
+    box-shadow:0 3px 5px rgba(0,0,0,.6);transform:translateX(-50%);
+  }
+  .wax{
+    display:block;margin:6px auto 0;width:34px;height:34px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#c0361c,#6e0f05 70%);
+    box-shadow:0 2px 5px rgba(0,0,0,.6), inset 0 0 6px rgba(0,0,0,.5);
+    position:relative;
+  }
+  .wax::after{content:"Т";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Ruslan Display',serif;color:#3a0602;font-size:18px}
+
+  /* ===== НАВИГАЦИЯ ===== */
+  .nav{
+    position:fixed;left:0;right:0;bottom:max(10px,env(safe-area-inset-bottom));z-index:5;
+    display:flex;align-items:center;justify-content:center;gap:14px;
+  }
+  .nav button{
+    width:46px;height:46px;border-radius:50%;cursor:pointer;
+    border:1.5px solid var(--gold);color:var(--gold-light);
+    background:radial-gradient(circle at 40% 30%,#4a2412,#1a0a05);
+    font-size:20px;font-family:'Ruslan Display',serif;
+    box-shadow:0 0 12px rgba(255,110,30,.35), inset 0 0 8px rgba(0,0,0,.7);
+    transition:transform .15s, box-shadow .2s, opacity .2s;
+  }
+  .nav button:hover{box-shadow:0 0 20px rgba(255,130,40,.7), inset 0 0 8px rgba(0,0,0,.7)}
+  .nav button:active{transform:scale(.9)}
+  .nav button:disabled{opacity:.25;cursor:default;box-shadow:none}
+  .dots{display:flex;gap:7px;align-items:center}
+  .dot{
+    width:8px;height:8px;border-radius:50%;background:#4a2a14;border:1px solid #8a5a20;cursor:pointer;
+    transition:all .3s;
+  }
+  .dot.on{background:var(--ember);box-shadow:0 0 10px var(--ember),0 0 18px rgba(255,100,20,.6);border-color:var(--gold-light);transform:scale(1.3)}
+
+  /* ===== ПЕЧАТИ НА СТРАНИЦАХ ===== */
+  [hidden]{display:none!important}
+  input{user-select:text;-webkit-user-select:text}
+  .seal{
+    position:absolute;inset:0;z-index:6;border-radius:inherit;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    text-align:center;padding:30px 34px 30px 40px;color:var(--gold);
+    background:radial-gradient(ellipse at 50% 45%,rgba(62,30,12,.93),rgba(16,7,3,.98) 82%);
+    transition:opacity .9s ease, filter .9s ease, transform .9s ease;
+  }
+  .seal::before{
+    content:"";position:absolute;inset:12px 12px 14px 20px;
+    border:1.5px solid rgba(217,164,65,.5);border-radius:3px;
+    box-shadow:0 0 14px rgba(217,164,65,.25);
+  }
+  .seal > *{position:relative}
+  .seal .wax2{
+    width:96px;height:96px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 35% 30%,#d9452b,#7a1206 65%,#3d0702);
+    box-shadow:0 6px 16px rgba(0,0,0,.7),inset 0 0 14px rgba(0,0,0,.55),0 0 26px rgba(255,80,20,.4);
+    animation:sealPulse 3s ease-in-out infinite;
+  }
+  @keyframes sealPulse{
+    0%,100%{box-shadow:0 6px 16px rgba(0,0,0,.7),inset 0 0 14px rgba(0,0,0,.55),0 0 18px rgba(255,80,20,.3)}
+    50%{box-shadow:0 6px 16px rgba(0,0,0,.7),inset 0 0 14px rgba(0,0,0,.55),0 0 38px rgba(255,100,30,.65)}
+  }
+  .seal h4{
+    font-family:'Ruslan Display',serif;font-weight:400;font-size:clamp(21px,6vw,26px);margin:0;
+    color:var(--gold-light);text-shadow:0 0 10px rgba(255,120,30,.6);
+  }
+  .seal p{font-style:italic;font-size:16px;margin:0;color:#c9a15a}
+  .seal .rn{letter-spacing:8px;font-size:15px;opacity:.7;animation:flick 3s ease-in-out infinite}
+  .seal.burn{opacity:0;filter:brightness(2.4) blur(7px);transform:scale(1.06);pointer-events:none}
+
+  /* ===== ЗАКЛИНАНИЯ: НАЖАТИЕ ===== */
+  .spell{
+    cursor:pointer;padding:9px 11px;margin-left:-4px;margin-right:-4px;border-radius:8px;
+    border:1px dashed rgba(120,70,20,.38);
+    transition:background .25s,border-color .25s,transform .15s;
+  }
+  .spell:hover{background:rgba(255,170,70,.14);border-color:rgba(160,80,20,.7)}
+  .spell:active{transform:scale(.975)}
+  .spell.cast{animation:cast 1s ease-out}
+  @keyframes cast{
+    0%{background:rgba(255,200,90,.65);border-color:#ff7a1c;box-shadow:0 0 30px 6px rgba(255,110,20,.95)}
+    40%{background:rgba(255,150,50,.35);border-color:#ff8a2a;box-shadow:0 0 22px 2px rgba(255,100,20,.6)}
+    100%{background:transparent;border-color:rgba(120,70,20,.38);box-shadow:0 0 0 0 rgba(255,100,20,0)}
+  }
+  .spell.cast h3{animation:h3cast 1s ease-out}
+  @keyframes h3cast{
+    0%{color:#fff0b8;text-shadow:0 0 18px #ff9a30,0 0 36px #ff5a10}
+    100%{color:#6a1c05;text-shadow:none}
+  }
+  #fx{position:fixed;inset:0;z-index:60;pointer-events:none}
+  #flash{
+    position:fixed;inset:0;z-index:61;pointer-events:none;opacity:0;
+    background:radial-gradient(circle at var(--fx,50%) var(--fy,50%),rgba(255,220,140,.95),rgba(255,100,20,.45) 32%,transparent 66%);
+  }
+  #flash.on{animation:flashA .65s ease-out}
+  @keyframes flashA{0%{opacity:1}100%{opacity:0}}
+  .book.shake{animation:shakeA .55s ease-out}
+  @keyframes shakeA{
+    0%,100%{transform:rotateX(6deg)}
+    15%{transform:rotateX(6deg) translate(-9px,4px)}
+    30%{transform:rotateX(6deg) translate(8px,-5px)}
+    45%{transform:rotateX(6deg) translate(-6px,3px)}
+    60%{transform:rotateX(6deg) translate(5px,-2px)}
+    80%{transform:rotateX(6deg) translate(-2px,1px)}
+  }
+  .dmg{
+    position:fixed;z-index:62;pointer-events:none;transform:translate(-50%,-50%);
+    max-width:270px;text-align:center;font-family:'Ruslan Display',serif;font-size:21px;line-height:1.2;
+    color:var(--gold-light);padding:6px 14px;border-radius:10px;
+    background:rgba(20,6,2,.78);border:1px solid rgba(255,140,50,.7);
+    text-shadow:0 0 10px rgba(255,120,30,.9);box-shadow:0 0 18px rgba(255,90,20,.55);
+    animation:dmgRise 1.9s ease-out forwards;
+  }
+  @keyframes dmgRise{
+    0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}
+    15%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}
+    75%{opacity:1}
+    100%{opacity:0;transform:translate(-50%,-190%) scale(1)}
+  }
+
+  /* ===== ПАНЕЛЬ ХРАНИТЕЛЯ ===== */
+  #adminBtn{
+    position:fixed;top:max(10px,env(safe-area-inset-top));right:10px;z-index:8;
+    width:36px;height:36px;border-radius:50%;cursor:pointer;
+    border:1px solid rgba(217,164,65,.5);background:rgba(20,8,4,.6);
+    color:var(--gold);font-size:16px;opacity:.32;transition:opacity .25s;
+  }
+  #adminBtn:hover,#adminBtn:focus{opacity:.95}
+  .modal{
+    position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
+    background:rgba(5,2,1,.62);backdrop-filter:blur(3px);padding:16px;
+  }
+  .modal.open{display:flex}
+  .panel{
+    width:min(92vw,400px);max-height:86dvh;overflow:auto;padding:20px 18px;
+    border:2px solid var(--gold);border-radius:12px;color:#ecd9a8;
+    background:linear-gradient(145deg,#3a1a0d,#160803);
+    box-shadow:0 0 40px rgba(255,100,20,.35),inset 0 0 30px rgba(0,0,0,.7);
+  }
+  .panel.shake{animation:panelShake .45s}
+  @keyframes panelShake{0%,100%{transform:none}20%{transform:translateX(-10px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+  .panel h3{
+    font-family:'Ruslan Display',serif;font-weight:400;font-size:25px;margin:0 0 8px;text-align:center;
+    color:var(--gold-light);text-shadow:0 0 10px rgba(255,120,30,.6);
+  }
+  .panel p{color:#d8c08a;font-size:16px;margin:0 0 12px;text-align:center}
+  .panel input[type=password],.panel input[type=text]{
+    width:100%;padding:11px 12px;border-radius:8px;border:1px solid var(--gold);
+    background:#120703;color:var(--gold-light);font-size:20px;text-align:center;letter-spacing:6px;
+    outline:none;margin-bottom:12px;font-family:'EB Garamond',serif;
+  }
+  .panel input:focus{box-shadow:0 0 14px rgba(255,120,30,.6)}
+  .row{display:flex;gap:10px;margin-top:10px}
+  .btn{
+    flex:1;padding:11px 10px;border-radius:8px;cursor:pointer;
+    border:1px solid var(--gold);color:#2a1004;font-family:'Ruslan Display',serif;font-size:16px;
+    background:linear-gradient(180deg,#ffd98a,#d9a441);
+    box-shadow:0 0 12px rgba(255,140,40,.35);
+  }
+  .btn.ghost{background:transparent;color:var(--gold-light);box-shadow:none}
+  .btn:active{transform:scale(.97)}
+  .err{color:#ff8a70;text-align:center;min-height:20px;margin-top:8px;font-size:15px}
+  .warn{color:#ffb070;font-size:14px;text-align:center;margin:0 0 10px;font-style:italic}
+  .prow{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:10px 4px;border-bottom:1px solid rgba(217,164,65,.22);
+  }
+  .prow .nm{font-size:17px}
+  .prow .st{font-size:13px;color:#b98b43;display:block}
+  .sw{position:relative;width:48px;height:26px;flex:none}
+  .sw input{opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer;z-index:2}
+  .sw span{position:absolute;inset:0;border-radius:20px;background:#2a140a;border:1px solid #8a5a20;transition:.3s}
+  .sw span::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#7a5a30;transition:.3s}
+  .sw input:checked + span{background:#6a1c05;border-color:var(--gold-light);box-shadow:0 0 12px rgba(255,100,20,.65)}
+  .sw input:checked + span::after{transform:translateX(22px);background:var(--gold-light);box-shadow:0 0 8px #ffb04a}
+  details.pinbox{margin-top:12px;color:#d8c08a}
+  details.pinbox summary{cursor:pointer;font-size:16px;text-align:center}
+  details.pinbox > div{margin-top:10px}
+
+  @media (min-width:760px){
+    .book{width:430px;height:min(80vh,700px)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .leaf,.leaf.flipped{transition-duration:.01s}
+    .flicker,.flame-outer,.flame-mid,.flame-in{animation:none}
+  }
+</style>
+</head>
+<body>
+<div class="floor"></div>
+<canvas id="embers"></canvas>
+
+<div class="stage" id="stage">
+  <div class="book" id="book">
+    <div class="spine"></div>
+    <div class="block"></div>
+
+    <!-- ОБЛОЖКА -->
+    <div class="leaf" data-title="Обложка">
+      <div class="face cover">
+        <div class="gframe"></div>
+        <div>
+          <div class="runes">ᚠ ᚢ ᚦ ᚨ ᚱ ᚲ</div>
+        </div>
+        <div class="flame-wrap">
+          <svg viewBox="0 0 120 160" aria-label="Символ огня">
+            <defs>
+              <linearGradient id="gOut" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0" stop-color="#b3200a"/><stop offset=".55" stop-color="#ff5a14"/><stop offset="1" stop-color="#ffb23a"/>
+              </linearGradient>
+              <linearGradient id="gMid" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0" stop-color="#ff5a14"/><stop offset="1" stop-color="#ffd35c"/>
+              </linearGradient>
+              <linearGradient id="gIn" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0" stop-color="#ffb02e"/><stop offset="1" stop-color="#fff3b0"/>
+              </linearGradient>
+            </defs>
+            <g class="flame-outer"><path fill="url(#gOut)" d="M60 4C66 30 98 48 98 96c0 34-17 56-38 60-21-4-38-26-38-60 0-22 10-34 18-46 2 14 8 22 14 24C50 56 52 28 60 4z"/></g>
+            <g class="flame-mid"><path fill="url(#gMid)" d="M60 52c4 18 28 30 28 58 0 24-12 40-28 44-16-4-28-20-28-44 0-14 6-22 12-30 2 8 6 12 10 12 0-12 2-26 6-40z"/></g>
+            <g class="flame-in"><path fill="url(#gIn)" d="M60 96c3 12 16 20 16 38 0 14-7 22-16 24-9-2-16-10-16-24 0-10 5-14 8-20 2 4 4 6 7 6 0-8 0-14 1-24z"/></g>
+          </svg>
+        </div>
+        <div>
+          <h1>КНИГА<br>ПЛАМЕНИ</h1>
+          <div class="owner">Собственность Мордрейна Йтоунхейма</div>
+        </div>
+        <div>
+          <div class="runes" style="font-size:14px">ᛉ ᛊ ᛏ ᛒ ᛖ ᛗ</div>
+          <div class="hint">Свайпни влево, чтобы открыть</div>
+        </div>
+      </div>
+      <div class="face back leather"></div>
+      <div class="shade"></div>
+    </div>
+
+    <!-- СТРАНИЦА 1 -->
+    <div class="leaf" data-title="Внутренний жар">
+      <div class="face page">
+        <div class="frame"></div>
+        <div class="inner">
+          <h2 class="glow-in" style="--i:0">Внутренний жар</h2>
+          <div class="rune-line glow-in flicker" style="--i:1">ᚠ ᛉ ᚠ</div>
+          <p class="lead glow-in" style="--i:2">У Мордрейна есть</p>
+          <span class="big glow-in flicker" style="--i:3">7</span>
+          <p class="lead glow-in" style="--i:4">Очков Искры <b class="dice">(ОИ)</b></p>
+          <div class="box glow-in" style="--i:5">
+            <p style="margin:0 0 6px"><strong>Восстановление:</strong> полный (долгий) отдых возвращает все ОИ.</p>
+            <p style="margin:0"><strong>Короткий отдых:</strong> можно потратить 1 Кость Хитов, чтобы вернуть <b class="dice">2 ОИ</b>.</p>
+          </div>
+          <div class="box glow-in" style="--i:6">
+            <p style="margin:0"><strong>Сложность спасброска:</strong> <b class="dice">13</b></p>
+          </div>
+        </div>
+        <div class="foot">— I —</div>
+      </div>
+      <div class="face back"></div>
+      <div class="shade"></div>
+    </div>
+
+    <!-- СТРАНИЦА 2 -->
+    <div class="leaf" data-title="Драконья искра">
+      <div class="face page">
+        <div class="frame"></div>
+        <div class="inner">
+          <h2 class="glow-in" style="--i:0">Драконья искра</h2>
+          <div class="rune-line glow-in flicker" style="--i:1">ᚦ ᛟ ᚦ</div>
+          <p class="glow-in" style="--i:2"><em>Дракон Сайлас оставил часть своей силы.</em></p>
+          <div class="box glow-in" style="--i:3">
+            <p style="margin:0">Вы получаете <strong>Сопротивление урону огнем</strong>.</p>
+          </div>
+          <div class="box glow-in" style="--i:4">
+            <p style="margin:0">1 раз в день (бонусным действием) вы можете призвать <strong>призрачные огненные крылья</strong> на 1 минуту. Скорость полёта <b class="dice">30 футов</b>, атаки наносят <b class="dice">+1к6</b> урона огнем.</p>
+          </div>
+        </div>
+        <div class="foot">— II —</div>
+      </div>
+      <div class="face back"></div>
+      <div class="shade"></div>
+    </div>
+
+    <!-- СТРАНИЦА 3 -->
+    <div class="leaf" data-title="Заклинания 1-го ранга">
+      <div class="face page">
+        <div class="frame"></div>
+        <div class="inner">
+          <h2 class="glow-in" style="--i:0">Первый ранг</h2>
+          <div class="sub glow-in" style="--i:1">Стоимость: 1 ОИ</div>
+          <div class="rune-line glow-in flicker" style="--i:2">ᚲ ᚨ ᚲ</div>
+          <div class="spell glow-in" style="--i:3">
+            <h3>Огненные ладони <span class="cost">1 ОИ</span></h3>
+            <span class="tag">Конус огня</span>
+            <p>Конус огня 15 футов. Урон <b class="dice">3к6</b>. Спасбросок Ловкости (Сл <b class="dice">13</b>) на половину урона.</p>
+          </div>
+          <div class="spell glow-in" style="--i:4">
+            <h3>Огненный клинок <span class="cost">1 ОИ</span></h3>
+            <span class="tag">Бонусное действие</span>
+            <p>Оружие вспыхивает. Следующая атака наносит <b class="dice">+1к6</b> урона огнем, цель загорается (<b class="dice">1к6</b> в начале её хода).</p>
+          </div>
+        </div>
+        <div class="foot">— III —</div>
+      </div>
+      <div class="face back"></div>
+      <div class="shade"></div>
+    </div>
+
+    <!-- СТРАНИЦА 4 -->
+    <div class="leaf" data-title="Заклинания 2-го ранга">
+      <div class="face page">
+        <div class="frame"></div>
+        <div class="inner">
+          <h2 class="glow-in" style="--i:0">Второй ранг</h2>
+          <div class="sub glow-in" style="--i:1">Стоимость: 2 ОИ</div>
+          <div class="rune-line glow-in flicker" style="--i:2">ᚱ ᛊ ᚱ</div>
+          <div class="spell glow-in" style="--i:3">
+            <h3>Пылающий шар <span class="cost">2 ОИ</span></h3>
+            <span class="tag">Три луча</span>
+            <p>Три луча. Бросок атаки <b class="dice">+5</b>. Урон <b class="dice">2к6</b> за каждый луч.</p>
+          </div>
+          <div class="spell glow-in" style="--i:4">
+            <h3>Доспех Агатиса <span class="cost">2 ОИ</span></h3>
+            <span class="tag">Линия огня</span>
+            <p>Линия огня 30 футов. Урон <b class="dice">3к8</b>. Спасбросок Ловкости (Сл <b class="dice">13</b>).</p>
+          </div>
+        </div>
+        <div class="foot">— IV —</div>
+      </div>
+      <div class="face back"></div>
+      <div class="shade"></div>
+    </div>
+
+    <!-- СТРАНИЦА 5 -->
+    <div class="leaf" data-title="Заклинания 3-го ранга">
+      <div class="face page">
+        <div class="frame"></div>
+        <div class="inner">
+          <h2 class="glow-in" style="--i:0">Третий ранг</h2>
+          <div class="sub glow-in" style="--i:1">Стоимость: 3 ОИ</div>
+          <div class="rune-line glow-in flicker" style="--i:2">ᛒ ᛏ ᛒ</div>
+          <div class="spell glow-in" style="--i:3">
+            <h3>Огненный шар <span class="cost">3 ОИ</span></h3>
+            <span class="tag">Взрыв пламени</span>
+            <p>Радиус 20 футов. Урон <b class="dice">8к6</b>. Спасбросок Ловкости (Сл <b class="dice">13</b>) на половину урона.</p>
+          </div>
+        </div>
+        <div class="foot">— V —</div>
+      </div>
+      <div class="face back"></div>
+      <div class="shade"></div>
+    </div>
+
+    <!-- СТРАНИЦА 6: ЗАПИСКА -->
+    <div class="leaf" data-title="Записка от Тульзара">
+      <div class="face page">
+        <div class="frame"></div>
+        <div class="inner">
+          <h2 class="glow-in" style="--i:0">Меж страниц</h2>
+          <div class="rune-line glow-in flicker" style="--i:1">ᛉ ᛟ ᛉ</div>
+          <div class="note-wrap glow-in" style="--i:2">
+            <div class="pin"></div>
+            <div class="note">
+              <p>Мордрейн.</p>
+              <p>Я знаю, что ты нашёл в подполе. Знаю, кого ты освободил.</p>
+              <p>Твоя книга — не просто бумага. Это ключ. И за ним охотятся.</p>
+              <p>Не доверяй никому. Чёрные плащи уже идут по твоему следу.</p>
+              <p>Если хочешь узнать правду о Дагоне — приходи на старый мост на закате.</p>
+              <p>Спрячь книгу. Но не сжигай её.</p>
+              <p class="sign">Т.</p>
+              <span class="wax"></span>
+            </div>
+          </div>
+        </div>
+        <div class="foot">— VI —</div>
+      </div>
+      <div class="face back"></div>
+      <div class="shade"></div>
+    </div>
+  </div>
+</div>
+
+<button id="adminBtn" aria-label="Хранитель книги" title="Хранитель">ᛉ</button>
+<canvas id="fx"></canvas>
+<div id="flash"></div>
+
+<div class="modal" id="modal">
+  <div class="panel" id="panel">
+    <div id="pinView">
+      <h3>Печать хранителя</h3>
+      <p>Введи тайный код, чтобы управлять страницами.</p>
+      <input id="pinInput" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••">
+      <div class="row">
+        <button class="btn" id="pinOk">Войти</button>
+        <button class="btn ghost" id="pinCancel">Закрыть</button>
+      </div>
+      <div class="err" id="pinErr"></div>
+    </div>
+    <div id="adminView" hidden>
+      <h3>Панель хранителя</h3>
+      <p>Включи переключатель — печать сгорит, страница откроется.</p>
+      <div class="warn" id="pinWarn" hidden>Сейчас код по умолчанию (1234). Смени его ниже.</div>
+      <div id="pageList"></div>
+      <div class="row">
+        <button class="btn" id="openAll">Открыть все</button>
+        <button class="btn ghost" id="lockAll">Запечатать все</button>
+      </div>
+      <details class="pinbox">
+        <summary>Сменить код</summary>
+        <div>
+          <input id="newPin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="Новый код (4–8 цифр)">
+          <button class="btn" id="savePin" style="width:100%">Сохранить код</button>
+          <div class="err" id="newPinMsg"></div>
+        </div>
+      </details>
+      <div class="row"><button class="btn ghost" id="closeAdmin">Закрыть панель</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="nav">
+  <button id="prev" aria-label="Назад">◀</button>
+  <div class="dots" id="dots"></div>
+  <button id="next" aria-label="Вперёд">▶</button>
+</div>
+
+<script>
+(function(){
+  const leaves=[...document.querySelectorAll('.leaf')];
+  const total=leaves.length;
+  const prevBtn=document.getElementById('prev');
+  const nextBtn=document.getElementById('next');
+  const dotsEl=document.getElementById('dots');
+  let cur=0, busy=false;
+
+  leaves.forEach((l,i)=>{
+    l.style.zIndex=total-i;
+    const d=document.createElement('div');
+    d.className='dot';d.title=l.dataset.title;
+    d.addEventListener('click',()=>goTo(i));
+    dotsEl.appendChild(d);
+  });
+  const dots=[...dotsEl.children];
+
+  function render(){
+    leaves.forEach((l,i)=>{
+      l.classList.toggle('flipped',i<cur);
+      l.classList.toggle('active',i===cur);
+    });
+    dots.forEach((d,i)=>d.classList.toggle('on',i===cur));
+    prevBtn.disabled=cur===0;
+    nextBtn.disabled=cur===total-1;
+  }
+  function goTo(n){
+    n=Math.max(0,Math.min(total-1,n));
+    if(n===cur||busy) return;
+    busy=true;
+    const step=n>cur?1:-1;
+    // листаем по одной странице, чтобы эффект был честным
+    const stepper=()=>{
+      cur+=step;render();
+      if(cur!==n) setTimeout(stepper,260); else setTimeout(()=>busy=false,500);
+    };
+    stepper();
+  }
+  const next=()=>goTo(cur+1), prev=()=>goTo(cur-1);
+  nextBtn.addEventListener('click',next);
+  prevBtn.addEventListener('click',prev);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ') {e.preventDefault();next()}
+    if(e.key==='ArrowLeft'||e.key==='PageUp') {e.preventDefault();prev()}
+  });
+
+  // ===== СВАЙПЫ =====
+  let sx=0,sy=0,st=0,tracking=false;
+  const stage=document.getElementById('stage');
+  stage.addEventListener('touchstart',e=>{
+    const t=e.touches[0];sx=t.clientX;sy=t.clientY;st=Date.now();tracking=true;
+  },{passive:true});
+  stage.addEventListener('touchend',e=>{
+    if(!tracking) return;tracking=false;
+    const t=e.changedTouches[0];
+    const dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)*1.3 && Date.now()-st<900){
+      dx<0?next():prev();
+    }
+  },{passive:true});
+  // свайп мышью на десктопе
+  let mx=null;
+  stage.addEventListener('mousedown',e=>{mx=e.clientX});
+  window.addEventListener('mouseup',e=>{
+    if(mx===null) return;
+    const dx=e.clientX-mx;mx=null;
+    if(Math.abs(dx)>70) dx<0?next():prev();
+  });
+
+  render();
+
+  // ===== ИСКРЫ И ПЕПЕЛ =====
+  const cv=document.getElementById('embers');
+  const ctx=cv.getContext('2d');
+  let W,H,dpr=Math.min(window.devicePixelRatio||1,2);
+  function resize(){
+    W=window.innerWidth;H=window.innerHeight;
+    cv.width=W*dpr;cv.height=H*dpr;
+    cv.style.width=W+'px';cv.style.height=H+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  resize();window.addEventListener('resize',resize);
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const N=reduce?0:(W<600?55:90);
+  const parts=[];
+  function spawn(p,initial){
+    p=p||{};
+    p.x=Math.random()*W;
+    p.y=initial?Math.random()*H:H+10;
+    p.r=Math.random()*2.2+.5;
+    p.vy=-(Math.random()*.9+.3);
+    p.vx=(Math.random()-.5)*.4;
+    p.life=Math.random()*Math.PI*2;
+    p.sp=Math.random()*.03+.01;
+    p.ash=Math.random()<.3;   // часть частиц — серый пепел
+    p.hue=Math.random()*25+10;
+    return p;
+  }
+  for(let i=0;i<N;i++) parts.push(spawn(null,true));
+  function tick(){
+    ctx.clearRect(0,0,W,H);
+    ctx.globalCompositeOperation='lighter';
+    for(const p of parts){
+      p.life+=p.sp;
+      p.x+=p.vx+Math.sin(p.life*2)*.35;
+      p.y+=p.vy;
+      if(p.y<-12||p.x<-12||p.x>W+12) spawn(p,false);
+      const flick=.5+.5*Math.sin(p.life*3);
+      if(p.ash){
+        ctx.fillStyle='rgba(150,140,130,'+(.18*flick+.08)+')';
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r*.9,0,7);ctx.fill();
+      }else{
+        const a=.25+.7*flick;
+        const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*5);
+        g.addColorStop(0,'hsla('+p.hue+',100%,65%,'+a+')');
+        g.addColorStop(1,'hsla('+p.hue+',100%,50%,0)');
+        ctx.fillStyle=g;
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r*5,0,7);ctx.fill();
+        ctx.fillStyle='hsla('+(p.hue+15)+',100%,85%,'+a+')';
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r*.7,0,7);ctx.fill();
+      }
+    }
+    ctx.globalCompositeOperation='source-over';
+    requestAnimationFrame(tick);
+  }
+  if(!reduce) tick();
+})();
+</script>
+
+<script>
+/* =====================================================================
+   ХРАНИТЕЛЬ КНИГИ: печати на страницах + эффекты заклинаний
+   ===================================================================== */
+(function(){
+  'use strict';
+
+  // ---------- НАСТРОЙКИ (меняй здесь) ----------
+  const CONFIG = {
+    defaultPin: '1234',                          // код по умолчанию — лучше сменить в панели
+    lockedByDefault: ['p3','p4','p5','p6']       // какие страницы запечатаны в начале (p1 = стр. I ... p6 = стр. VI)
+  };
+  const KEY_U = 'kp_unlocked_v1', KEY_P = 'kp_pin_v1';
+  const store = {
+    get(k){ try{ return localStorage.getItem(k) }catch(e){ return null } },
+    set(k,v){ try{ localStorage.setItem(k,v) }catch(e){} }
+  };
+  const $ = id => document.getElementById(id);
+  const rnd = (a,b) => a + Math.random()*(b-a);
+
+  // ---------- СТРАНИЦЫ ----------
+  const leaves = [...document.querySelectorAll('.leaf')];
+  const pages = [];
+  leaves.forEach((l,i)=>{
+    if(i===0) return;                       // обложка не запечатывается
+    l.dataset.id = 'p'+i;
+    pages.push({ id:'p'+i, num:i, el:l, title:l.dataset.title, face:l.querySelector('.face.page'), seal:null });
+  });
+
+  let unlocked;
+  try{ unlocked = JSON.parse(store.get(KEY_U)) }catch(e){ unlocked = null }
+  if(!Array.isArray(unlocked)){
+    unlocked = pages.map(p=>p.id).filter(id=>!CONFIG.lockedByDefault.includes(id));
+  }
+  const isOpen = id => unlocked.includes(id);
+  const save = () => store.set(KEY_U, JSON.stringify(unlocked));
+  const getPin = () => store.get(KEY_P) || CONFIG.defaultPin;
+
+  const LOCK_SVG = '<svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="#2a0602" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2" fill="rgba(0,0,0,.25)"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3" fill="#2a0602"/></svg>';
+
+  function makeSeal(p, animate){
+    const s = document.createElement('div');
+    s.className = 'seal';
+    s.innerHTML = '<div class="rn">ᛉ ᛟ ᛉ</div><div class="wax2">'+LOCK_SVG+'</div><h4>Страница запечатана</h4><p>Печать снимет лишь хранитель книги</p><div class="rn">ᚠ ᛊ ᚠ</div>';
+    if(animate){ s.style.opacity = '0'; }
+    p.face.appendChild(s);
+    p.seal = s;
+    if(animate){ void s.offsetWidth; s.style.opacity = ''; }
+  }
+  function unseal(p, animate){
+    const s = p.seal; if(!s) return;
+    p.seal = null;
+    if(!animate){ s.remove(); return; }
+    if(!p.el.classList.contains('flipped')){
+      const r = s.getBoundingClientRect();
+      for(let i=0;i<130;i++){
+        part(rnd(r.left,r.right), rnd(r.top,r.bottom), rnd(-1.2,1.2), rnd(-4.5,-1),
+             {hue:rnd(10,45), r:rnd(1.2,3), decay:rnd(.008,.018), g:-.02});
+      }
+      kick();
+    }
+    s.classList.add('burn');
+    setTimeout(()=>s.remove(), 1100);
+    // перезапуск свечения текста
+    if(p.el.classList.contains('active')){
+      p.el.classList.remove('active'); void p.el.offsetWidth; p.el.classList.add('active');
+    }
+  }
+  function applyAll(initial){
+    pages.forEach(p=>{
+      const open = isOpen(p.id);
+      if(open && p.seal) unseal(p, !initial);
+      if(!open && !p.seal) makeSeal(p, !initial);
+    });
+  }
+  function setOpen(id, open){
+    const has = isOpen(id);
+    if(open && !has) unlocked.push(id);
+    if(!open && has) unlocked = unlocked.filter(x=>x!==id);
+    save(); applyAll(false);
+  }
+
+  // подсказка на страницах с заклинаниями
+  leaves.forEach(l=>{
+    if(l.querySelector('.spell')){
+      const sub = l.querySelector('.sub');
+      if(sub) sub.textContent += ' · коснись заклинания';
+    }
+  });
+
+  // =====================================================================
+  //  ЭФФЕКТЫ (canvas)
+  // =====================================================================
+  const fx = $('fx'), c = fx.getContext('2d'), flash = $('flash'), book = $('book');
+  let W, H, dpr = Math.min(window.devicePixelRatio||1, 2);
+  function size(){
+    W = innerWidth; H = innerHeight;
+    fx.width = W*dpr; fx.height = H*dpr;
+    fx.style.width = W+'px'; fx.style.height = H+'px';
+    c.setTransform(dpr,0,0,dpr,0,0);
+  }
+  size(); addEventListener('resize', size);
+
+  const P = [], B = [], R = [];
+  let running = false;
+  function part(x,y,vx,vy,o){
+    if(P.length > 650) P.shift();
+    P.push(Object.assign({x:x,y:y,vx:vx,vy:vy,life:1,decay:.018,r:2.2,hue:25,g:.04,drag:.985}, o||{}));
+  }
+  function kick(){ if(!running){ running = true; requestAnimationFrame(frame); } }
+
+  function frame(){
+    c.clearRect(0,0,W,H);
+    c.globalCompositeOperation = 'lighter';
+
+    // кольца ударной волны
+    for(let i=R.length-1;i>=0;i--){
+      const r = R[i];
+      if(r.delay>0){ r.delay--; continue; }
+      r.r += (r.max - r.r)*.085; r.life -= .03;
+      if(r.life<=0){ R.splice(i,1); continue; }
+      c.strokeStyle = 'hsla('+r.hue+',100%,60%,'+(r.life*.8)+')';
+      c.lineWidth = 14*r.life + 2;
+      c.beginPath(); c.arc(r.x,r.y,r.r,0,7); c.stroke();
+    }
+    // лучи
+    c.lineCap = 'round';
+    for(let i=B.length-1;i>=0;i--){
+      const b = B[i];
+      if(b.delay>0){ b.delay--; continue; }
+      b.age++;
+      const t = Math.min(1, b.age/b.grow);
+      const life = 1 - Math.max(0,(b.age-b.grow)/b.hold);
+      if(life<=0){ B.splice(i,1); continue; }
+      if(t>=1 && b.hit && !b.done){ b.done = true; b.hit(); }
+      const ex = b.x1 + (b.x2-b.x1)*t, ey = b.y1 + (b.y2-b.y1)*t;
+      c.strokeStyle = 'hsla('+b.hue+',100%,55%,'+(.38*life)+')';
+      c.lineWidth = b.w*2.4*life + 2;
+      c.beginPath(); c.moveTo(b.x1,b.y1); c.lineTo(ex,ey); c.stroke();
+      c.strokeStyle = 'hsla('+(b.hue+18)+',100%,82%,'+(.95*life)+')';
+      c.lineWidth = b.w*.7*life + 1;
+      c.beginPath(); c.moveTo(b.x1,b.y1); c.lineTo(ex,ey); c.stroke();
+    }
+    // частицы
+    for(let i=P.length-1;i>=0;i--){
+      const p = P[i];
+      p.vx *= p.drag; p.vy *= p.drag; p.vy += p.g;
+      p.x += p.vx; p.y += p.vy; p.life -= p.decay;
+      if(p.life<=0){ P.splice(i,1); continue; }
+      const a = Math.max(0,p.life);
+      const g = c.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*4.5);
+      g.addColorStop(0,'hsla('+p.hue+',100%,62%,'+a+')');
+      g.addColorStop(1,'hsla('+p.hue+',100%,45%,0)');
+      c.fillStyle = g;
+      c.beginPath(); c.arc(p.x,p.y,p.r*4.5,0,7); c.fill();
+      c.fillStyle = 'hsla('+(p.hue+20)+',100%,88%,'+a+')';
+      c.beginPath(); c.arc(p.x,p.y,p.r*.7,0,7); c.fill();
+    }
+    c.globalCompositeOperation = 'source-over';
+    if(P.length||B.length||R.length) requestAnimationFrame(frame);
+    else { running = false; c.clearRect(0,0,W,H); }
+  }
+
+  function burst(x,y,n,sp,o){
+    for(let i=0;i<n;i++){
+      const a = rnd(0,Math.PI*2), s = rnd(.25,1)*sp;
+      part(x,y,Math.cos(a)*s,Math.sin(a)*s,Object.assign({hue:rnd(10,48),r:rnd(1.2,3)},o||{}));
+    }
+  }
+  function doFlash(x,y){
+    flash.style.setProperty('--fx', x+'px'); flash.style.setProperty('--fy', y+'px');
+    flash.classList.remove('on'); void flash.offsetWidth; flash.classList.add('on');
+  }
+  function shake(){
+    book.classList.remove('shake'); void book.offsetWidth; book.classList.add('shake');
+    setTimeout(()=>book.classList.remove('shake'), 600);
+  }
+
+  const FX = {
+    // Огненные ладони — конус огня вверх от точки касания
+    palms(x,y){
+      for(let i=0;i<120;i++){
+        const a = -Math.PI/2 + rnd(-.5,.5), s = rnd(3,12);
+        part(x,y,Math.cos(a)*s,Math.sin(a)*s,{hue:rnd(8,45),r:rnd(1.2,3.4),decay:rnd(.012,.026),g:0});
+      }
+      burst(x,y,25,3,{decay:.04});
+      doFlash(x,y);
+    },
+    // Огненный клинок — вспышка-росчерк и искры вдоль лезвия
+    blade(x,y){
+      B.push({x1:x-120,y1:y-85,x2:x+120,y2:y+85,grow:6,hold:24,w:8,hue:34,delay:0,age:0});
+      B.push({x1:x-95,y1:y-95,x2:x+110,y2:y+70,grow:7,hold:20,w:4,hue:20,delay:4,age:0});
+      for(let i=0;i<70;i++){
+        const t = Math.random();
+        part(x-120+240*t, y-85+170*t, rnd(-2,2)+(t-.5)*3, rnd(-3.5,.5),
+             {hue:rnd(15,50),r:rnd(1,2.4),decay:rnd(.016,.03),g:.06});
+      }
+      doFlash(x,y);
+    },
+    // Пылающий шар — три огненных луча один за другим
+    rays(x,y){
+      [-.38,0,.38].forEach((da,i)=>{
+        setTimeout(()=>{
+          const ang = -Math.PI/2 + da;
+          const L = Math.max(160, Math.min(400, y-30));
+          const ex = x+Math.cos(ang)*L, ey = y+Math.sin(ang)*L;
+          B.push({x1:x,y1:y,x2:ex,y2:ey,grow:8,hold:20,w:9,hue:22,delay:0,age:0,
+                  hit:()=>{ burst(ex,ey,48,7,{decay:.024}); doFlash(ex,ey); }});
+          burst(x,y,18,4,{decay:.04});
+          kick();
+        }, i*170);
+      });
+    },
+    // Доспех Агатиса — линия огня на всю ширину экрана
+    line(x,y){
+      B.push({x1:0,y1:y,x2:W,y2:y,grow:10,hold:42,w:22,hue:20,delay:0,age:0});
+      for(let i=0;i<170;i++){
+        part(rnd(0,W), y+rnd(-8,8), rnd(-.6,.6), rnd(-4,-.6),
+             {hue:rnd(8,42),r:rnd(1.4,3.2),decay:rnd(.012,.026),g:-.01});
+      }
+      doFlash(x,y);
+    },
+    // Огненный шар — взрыв, ударная волна, тряска
+    fireball(x,y){
+      R.push({x:x,y:y,r:10,max:Math.max(W,H)*.55,life:1,hue:28,delay:0});
+      R.push({x:x,y:y,r:4,max:Math.max(W,H)*.34,life:1,hue:46,delay:5});
+      burst(x,y,240,15,{decay:.014,g:.08});
+      burst(x,y,90,5,{hue:rnd(40,55),r:3.6,decay:.01});
+      doFlash(x,y); shake();
+      setTimeout(()=>{
+        for(let i=0;i<90;i++){
+          part(rnd(0,W), rnd(-20,H*.45), rnd(-1,1), rnd(.5,2.6),
+               {hue:rnd(8,32),r:rnd(1,2.3),decay:.006,g:.03});
+        }
+        kick();
+      },260);
+    }
+  };
+
+  // ---------- Заклинания ----------
+  const SPELLS = [
+    ['Огненные ладони', {fx:'palms',   n:3, d:6}],
+    ['Огненный клинок', {fx:'blade',   n:1, d:6}],
+    ['Пылающий шар',    {fx:'rays',    n:2, d:6, times:3}],
+    ['Доспех Агатиса',  {fx:'line',    n:3, d:8}],
+    ['Огненный шар',    {fx:'fireball',n:8, d:6}]
+  ];
+  function findSpell(el){
+    const h = el.querySelector('h3'); if(!h) return null;
+    const name = h.firstChild ? h.firstChild.textContent.trim() : '';
+    const hit = SPELLS.find(s=>name.indexOf(s[0])===0);
+    return hit ? hit[1] : null;
+  }
+  function rollText(s){
+    const t = s.times||1, sums = [], all = [];
+    for(let k=0;k<t;k++){
+      let sum = 0; const ds = [];
+      for(let i=0;i<s.n;i++){ const v = 1+Math.floor(Math.random()*s.d); ds.push(v); sum += v; }
+      sums.push(sum); all.push(ds);
+    }
+    const total = sums.reduce((a,b)=>a+b,0);
+    if(t>1) return s.n+'к'+s.d+' ×'+t+': '+sums.join(' + ')+' = '+total;
+    if(s.n>1) return s.n+'к'+s.d+': '+all[0].join('+')+' = '+total;
+    return s.n+'к'+s.d+': '+total;
+  }
+  function label(x,y,text){
+    const d = document.createElement('div');
+    d.className = 'dmg'; d.textContent = 'Урон ' + text;
+    d.style.left = Math.max(150, Math.min(W-150, x)) + 'px';
+    d.style.top = Math.max(60, y-30) + 'px';
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(), 1950);
+  }
+
+  document.addEventListener('click', e=>{
+    const sp = e.target.closest ? e.target.closest('.spell') : null;
+    if(!sp) return;
+    const leaf = sp.closest('.leaf');
+    const page = pages.find(p=>p.el===leaf);
+    if(page && page.seal) return;           // запечатано — не колдуется
+    const s = findSpell(sp); if(!s) return;
+    const x = e.clientX || (sp.getBoundingClientRect().left + sp.offsetWidth/2);
+    const y = e.clientY || (sp.getBoundingClientRect().top + sp.offsetHeight/2);
+    sp.classList.remove('cast'); void sp.offsetWidth; sp.classList.add('cast');
+    FX[s.fx](x,y); kick();
+    label(x,y,rollText(s));
+    if(navigator.vibrate) try{ navigator.vibrate(s.fx==='fireball'?[40,30,80]:25) }catch(_){}
+  });
+
+  // =====================================================================
+  //  ПАНЕЛЬ ХРАНИТЕЛЯ
+  // =====================================================================
+  const modal = $('modal'), panel = $('panel');
+  const pinView = $('pinView'), adminView = $('adminView');
+  const pinInput = $('pinInput'), pinErr = $('pinErr');
+  let authed = false;
+
+  function showPin(){
+    pinView.hidden = false; adminView.hidden = true;
+    pinInput.value = ''; pinErr.textContent = '';
+    setTimeout(()=>pinInput.focus(), 60);
+  }
+  function showAdmin(){
+    pinView.hidden = true; adminView.hidden = false;
+    $('pinWarn').hidden = !(getPin() === CONFIG.defaultPin);
+    buildList();
+  }
+  function openModal(){
+    modal.classList.add('open');
+    authed ? showAdmin() : showPin();
+  }
+  function closeModal(){ modal.classList.remove('open'); authed = false; }
+
+  function buildList(){
+    const box = $('pageList'); box.innerHTML = '';
+    const rom = ['','I','II','III','IV','V','VI'];
+    pages.forEach(p=>{
+      const row = document.createElement('div'); row.className = 'prow';
+      const nm = document.createElement('div'); nm.className = 'nm';
+      nm.innerHTML = rom[p.num] + ' · ' + p.title + '<span class="st">' + (isOpen(p.id)?'открыта':'запечатана') + '</span>';
+      const sw = document.createElement('label'); sw.className = 'sw';
+      const inp = document.createElement('input'); inp.type = 'checkbox'; inp.checked = isOpen(p.id);
+      inp.addEventListener('change', ()=>{
+        setOpen(p.id, inp.checked);
+        nm.querySelector('.st').textContent = inp.checked ? 'открыта' : 'запечатана';
+      });
+      sw.appendChild(inp); sw.appendChild(document.createElement('span'));
+      row.appendChild(nm); row.appendChild(sw); box.appendChild(row);
+    });
+  }
+
+  function checkPin(){
+    if(pinInput.value === getPin()){ authed = true; showAdmin(); }
+    else{
+      pinErr.textContent = 'Неверный код';
+      pinInput.value = '';
+      panel.classList.remove('shake'); void panel.offsetWidth; panel.classList.add('shake');
+    }
+  }
+
+  $('adminBtn').addEventListener('click', openModal);
+  $('pinOk').addEventListener('click', checkPin);
+  $('pinCancel').addEventListener('click', closeModal);
+  $('closeAdmin').addEventListener('click', closeModal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) closeModal(); });
+  pinInput.addEventListener('keydown', e=>{ e.stopPropagation(); if(e.key==='Enter') checkPin(); });
+  $('newPin').addEventListener('keydown', e=>e.stopPropagation());
+  $('openAll').addEventListener('click', ()=>{ unlocked = pages.map(p=>p.id); save(); applyAll(false); buildList(); });
+  $('lockAll').addEventListener('click', ()=>{ unlocked = []; save(); applyAll(false); buildList(); });
+  $('savePin').addEventListener('click', ()=>{
+    const v = $('newPin').value.trim(), msg = $('newPinMsg');
+    if(!/^\d{4,8}$/.test(v)){ msg.textContent = 'Нужно 4–8 цифр'; return; }
+    store.set(KEY_P, v); $('newPin').value = '';
+    msg.style.color = '#9fe08a'; msg.textContent = 'Код изменён';
+    $('pinWarn').hidden = (v !== CONFIG.defaultPin);
+    setTimeout(()=>{ msg.textContent = ''; msg.style.color = ''; }, 2200);
+  });
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape' && modal.classList.contains('open')) closeModal();
+    if(e.ctrlKey && e.shiftKey && (e.key==='A'||e.key==='a')){ e.preventDefault(); openModal(); }
+  });
+
+  // старт
+  applyAll(true);
+})();
+</script>
+</body>
+</html>
